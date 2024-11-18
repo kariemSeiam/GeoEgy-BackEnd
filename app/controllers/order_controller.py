@@ -1,58 +1,60 @@
-from flask import Blueprint, jsonify, request, abort
-from app.models.user import  User
-from app.models.order import  Order
+from flask import Blueprint, request, jsonify
+from flask_jwt_extended import jwt_required
+from app.models.order import Order
+from app.models.governorate import Governorate
+from app.models.user import User
+from app import db
 from app.utils.security import get_current_user
-from .. import db
+from app.utils.validators import ValidationError
 
-bp = Blueprint('order', __name__, url_prefix='/order')
+bp = Blueprint('order', __name__, url_prefix='/api/order')
 
 @bp.route('/place', methods=['POST'])
+@jwt_required()
 def place_order():
-    data = request.json
-    user_id = data.get('user_id')
-    place = data.get('place')
-    province = data.get('province')
-    total_cost = data.get('total_cost')
+    data = request.get_json()
+    user = get_current_user()
 
-    new_order = Order(user_id=user_id, place=place, province=province, total_cost=total_cost)
-    db.session.add(new_order)
-    db.session.commit()
+    if user.is_blocked:
+        return jsonify({'code': 403, 'message': 'Account is blocked', 'data': {}}), 403
 
-    return jsonify({'message': 'Order placed successfully'})
+    place_name = data.get('place_name')
+    business_details = data.get('business_details')
+    selected_govs = data.get('selected_govs')  # List of governorate names
+    whatsapp_number = data.get('whatsapp_number')
 
-@bp.route('/get_orders', methods=['GET'])
-def get_orders():
-    query = request.args.get('phone_number')
-    current_user = get_current_user(query)  # Example: Implement authentication logic
-    if current_user.is_admin:
-        orders = Order.query.all()
+    if not all([place_name, selected_govs]):
+        raise ValidationError('Place name and selected governorates are required')
+
+    # Update user's WhatsApp number if provided
+    if whatsapp_number:
+        user.whatsapp_number = whatsapp_number
+        db.session.commit()
+
+    # Calculate total_price
+    if 'كل محافظات مصر' in selected_govs:
+        # Custom price for all governorates
+        total_price = 4000  # Assuming a fixed price
     else:
-        orders = Order.query.filter_by(user_id=current_user.id).all()
+        govs = Governorate.query.filter(Governorate.name.in_(selected_govs)).all()
+        total_price = sum([gov.price for gov in govs])
 
-    return jsonify({'orders': [order.serialize() for order in orders]})
-
-@bp.route('/accept_order/<int:order_id>', methods=['POST'])
-def accept_order(order_id):
-    current_user = get_current_user()  # Example: Implement authentication logic
-    if not current_user.is_admin:
-        abort(403)  # Unauthorized
-
-    order = Order.query.get_or_404(order_id)
-    order.is_accepted = True
-
-    # Additional data for user's order history via JSON link
-    json_link = request.json.get('json_link')
-    if json_link:
-        order.file_url = json_link
-
-    selected_province = request.json.get('province')
-    if selected_province:
-        order.province = selected_province
-
+    order = Order(
+        user_id=user.id,
+        place_name=place_name,
+        business_details=business_details,
+        selected_govs=','.join(selected_govs),
+        total_price=total_price,
+        status='Awaiting Payment Confirmation'
+    )
+    db.session.add(order)
     db.session.commit()
 
-    # Send order confirmation via WhatsApp to user
-    user = User.query.get(order.user_id)
-    message = f"Your order for {order.place} has been accepted. Please check your dashboard."
+    return jsonify({'code': 201, 'message': 'Order placed successfully', 'data': order.serialize()})
 
-    return jsonify({'message': 'Order accepted and user updated successfully'})
+@bp.route('/my_orders', methods=['GET'])
+@jwt_required()
+def my_orders():
+    user = get_current_user()
+    orders = Order.query.filter_by(user_id=user.id).all()
+    return jsonify({'code': 200, 'message': 'Success', 'data': [order.serialize() for order in orders]})

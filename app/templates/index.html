@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>دليل أماكن مصر</title>
+    <!-- Meta Tags -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="description" content="لوحة معلومات متقدمة لإدارة وعرض بيانات الأماكن في مصر بتصميم حديث واستجابة كاملة.">
+    <meta name="keywords" content="بيانات, لوحة معلومات, مصر, أماكن, تصميم ويب, استجابة, 2024">
+    <!-- Open Graph Meta Tags -->
+    <meta property="og:title" content="دليل أماكن مصر">
+    <meta property="og:description" content="لوحة معلومات متقدمة لإدارة وعرض بيانات الأماكن في مصر بتصميم حديث واستجابة كاملة.">
+    <meta property="og:type" content="website">
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+    <!-- Styles -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <!-- Leaflet CSS for Map -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" >
+    <!-- Favicon -->
+    <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
+</head>
+<body>
+    <!-- Login Container -->
+    <div id="login-container">
+        <div class="login-form">
+            <h2>تسجيل الدخول</h2>
+            <form id="login-form">
+                <label for="phone-number">رقم الهاتف:</label>
+                <input type="text" id="phone-number" name="phone-number" placeholder="أدخل رقم الهاتف" required>
+                <button type="submit">تسجيل الدخول</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Main Container -->
+    <div id="main-container" style="display: none;">
+        <!-- Header -->
+        <header class="header">
+            <div class="container header__container">
+                <h1 class="header__title">دليل أماكن مصر</h1>
+                <div class="header__actions">
+                    <button id="buy-data-btn" class="button button--primary" title="شراء البيانات" aria-label="شراء البيانات"><span>شراء البيانات</span><i class="fas fa-shopping-cart" aria-hidden="true"></i></button>
+                    <!-- Logout Button -->
+                    <button id="logout-btn" class="button button--secondary" title="تسجيل الخروج" aria-label="تسجيل الخروج"><span>تسجيل الخروج</span><i class="fas fa-sign-out-alt" aria-hidden="true"></i></button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Navigation Bar -->
+        <nav class="top-bar">
+            <div class="container top-bar__container">
+                <!-- Search Filter -->
+                <div class="filter filter--search">
+                    <label for="search-input" class="filter__label">البحث</label>
+                    <input type="text" id="search-input" class="filter__input" placeholder="ابحث عن أماكن..." aria-label="ابحث عن أماكن">
+                </div>
+                <!-- ... other filters can be added here ... -->
+            </div>
+        </nav>
+
+        <!-- Data Analysis Bar -->
+        <section class="analysis-bar" aria-label="شريط تحليل البيانات">
+            <div class="container analysis-bar__container">
+                <div class="analysis-item">
+                    <strong>إجمالي الأماكن:</strong>
+                    <span id="total-places">0</span>
+                </div>
+                <div class="analysis-item">
+                    <strong>إجمالي المراجعات:</strong>
+                    <span id="total-reviews">0</span>
+                </div>
+                <div class="analysis-item">
+                    <strong>متوسط التقييم:</strong>
+                    <span id="average-rating">0</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="container">
+                <section id="data-grid" class="data-grid" aria-live="polite">
+                    <!-- Data cards will be inserted here -->
+                </section>
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <div class="container footer__container">
+                <p class="footer__text">© 2024 دليل أماكن مصر</p>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Modals -->
+    <!-- Buy Data Modal -->
+    <div id="buy-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="buy-modal-title">
+        <div class="modal__content" tabindex="-1">
+            <button class="modal__close-btn" aria-label="إغلاق">×</button>
+            <h2 id="buy-modal-title" class="modal__title">شراء البيانات</h2>
+            <form id="buy-form">
+                <!-- Step 1: Place Name -->
+                <div class="modal__section">
+                    <p class="modal__step">الخطوة 1 من 3</p>
+                    <label for="place-name-input" class="modal__label">ما هي الأماكن التي تريد البحث عنها؟</label>
+                    <input type="text" id="place-name-input" name="placeName" class="modal__input" placeholder="مثال: مطعم، كافيه، صيدلية" required>
+                </div>
+                <!-- Step 2: Business Details -->
+                <div class="modal__section">
+                    <p class="modal__step">الخطوة 2 من 3</p>
+                    <label for="business-info" class="modal__label">معلومات إضافية عن نشاطك التجاري (اختياري)</label>
+                    <textarea id="business-info" name="businessInfo" class="modal__textarea" placeholder="صف نشاطك التجاري باختصار"></textarea>
+                </div>
+                <!-- Step 3: Select Governorates -->
+                <div class="modal__section">
+                    <p class="modal__step">الخطوة 3 من 3</p>
+                    <label class="modal__label">اختر المحافظات</label>
+                    <div class="modal__options">
+                        <label class="modal__option">
+                            <input type="checkbox" id="select-all" value="كل محافظات مصر">
+                            <span>كل محافظات مصر</span>
+                        </label>
+                        <div class="modal__scrollable" id="governorates-list">
+                            <!-- Governorates will be loaded here -->
+                        </div>
+                    </div>
+                </div>
+                <!-- Total Price -->
+                <div class="modal__section">
+                    <p class="modal__price-label">التكلفة الإجمالية:</p>
+                    <p id="total-price" class="modal__price">0 جنيه مصري</p>
+                </div>
+                <!-- WhatsApp Number Confirmation -->
+                <div class="modal__section">
+                    <label class="modal__label">هل رقم هاتفك يحتوي على واتساب؟</label>
+                    <div class="modal__payment-options">
+                        <label class="modal__payment-option">
+                            <input type="radio" name="whatsappOption" value="yes" checked>
+                            <span>نعم</span>
+                        </label>
+                        <label class="modal__payment-option">
+                            <input type="radio" name="whatsappOption" value="no">
+                            <span>لا</span>
+                        </label>
+                    </div>
+                    <div id="whatsapp-number-section" style="display: none;">
+                        <label for="whatsapp-number" class="modal__label">أدخل رقم واتساب الخاص بك:</label>
+                        <input type="text" id="whatsapp-number" name="whatsappNumber" class="modal__input" placeholder="أدخل رقم واتساب">
+                    </div>
+                </div>
+                <!-- Submit Button -->
+                <div class="modal__section">
+                    <button type="submit" class="button button--primary modal__submit-btn">إرسال الطلب</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Floating Action Buttons -->
+    <!-- Map Toggle Button -->
+    <button id="map-toggle-btn" class="fabb" aria-label="عرض الخريطة">
+        <i class="fas fa-map-marked-alt" aria-hidden="true"></i>
+    </button>
+    <!-- Back to Top Button -->
+    <button id="back-to-top" class="back-to-top" aria-label="العودة إلى الأعلى">
+        <i class="fas fa-arrow-up" aria-hidden="true"></i>
+    </button>
+    <!-- Theme Toggle Button -->
+    <button id="toggle-theme-btn" class="theme-toggle-btn" aria-label="تغيير الوضع">
+        <i class="fas fa-moon" aria-hidden="true"></i>
+    </button>
+
+    <!-- Scripts -->
+    <!-- Leaflet JS for Map -->
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <!-- Main Script -->
+    <script type="module" src="{{ url_for('static', filename='script.js') }}" defer></script>
+</body>
+</html>

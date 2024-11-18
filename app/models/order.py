@@ -1,24 +1,28 @@
-from .. import db
+from flask_sqlalchemy import SQLAlchemy
+from datetime import datetime
+
+db = SQLAlchemy()
 
 class Order(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    place = db.Column(db.String(255), nullable=False)
-    province = db.Column(db.String(255), nullable=False)
-    total_cost = db.Column(db.Integer, nullable=False)
-    is_accepted = db.Column(db.Boolean, default=False)
-    file_url = db.Column(db.String(255))
-
-    def __repr__(self):
-        return f'<Order {self.id}>'
+    place_name = db.Column(db.String(255), nullable=False)
+    business_details = db.Column(db.Text)
+    selected_govs = db.Column(db.String(255), nullable=False)
+    total_price = db.Column(db.Float, nullable=False)
+    status = db.Column(db.String(50), default='Awaiting Payment Confirmation')
+    json_file_url = db.Column(db.String(255))
+    order_date = db.Column(db.DateTime, default=datetime.utcnow)
 
     def serialize(self):
         return {
             'id': self.id,
             'user_id': self.user_id,
-            'place': self.place,
-            'province': self.province,
-            'total_cost': self.total_cost,
-            'is_accepted': self.is_accepted,
-            'file_url': self.file_url
+            'place_name': self.place_name,
+            'business_details': self.business_details,
+            'selected_govs': self.selected_govs,
+            'total_price': self.total_price,
+            'status': self.status,
+            'json_file_url': self.json_file_url,
+            'order_date': self.order_date.isoformat(),
         }

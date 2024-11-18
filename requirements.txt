@@ -1,2 +1,15 @@
 Flask
 Flask-SQLAlchemy
+flask-jwt-extended
+Flask-Limiter
+Flask-Talisman
+flasgger
+pytest
+pytest-flask
+alembic
+python-dotenv
+loguru
+flake8
+black
+requests
+Flask-Cors
